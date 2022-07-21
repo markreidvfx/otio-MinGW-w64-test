@@ -1,0 +1,59 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Workflow
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Set up MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: mingw64
+        install: >-
+          mingw-w64-x86_64-python
+          mingw-w64-x86_64-python-setuptools
+          mingw-w64-x86_64-python-pip
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          make
+          git
+
+    - name: Build Wheel
+      shell: msys2 {0}
+      run: |
+        uname -a
+        pacman -Qe
+        which pip
+        pip install wheel pytest
+        git clone https://github.com/markreidvfx/OpenTimelineIO
+        cd OpenTimelineIO
+        git checkout -b mingw64_suppport_v1 --track origin/mingw64_suppport_v1
+        python setup.py bdist_wheel
+
+    - name: Upload wheel
+      uses: actions/upload-artifact@v3
+      with:
+        name: wheel
+        path: OpenTimelineIO/dist/*.whl
+
+    - name: Install and Test
+      shell: msys2 {0}
+      run: |
+        pip install OpenTimelineIO/dist/*.whl
+        cd OpenTimelineIO
+        make test
